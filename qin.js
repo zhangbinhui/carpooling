@@ -1,27 +1,3 @@
-addEventListener('scheduled', event => {
-    event.waitUntil(handleScheduledEvent(event))
-  })
-
-async function handleScheduledEvent(event) {
-    const userJoined = await oai_global_variables.get("user_joined");
-    if (!userJoined) return;
-
-    const currentDate = new Date().toISOString().split('T')[0]; // 获取当前日期，不包括时间
-    const entries = userJoined.split(',');
-    const updatedEntries = entries.filter(entry => {
-        const [userName, expireDate] = entry.split(':');
-        return expireDate >= currentDate; // 只比较日期
-    });
-
-    // 更新用户加入时间列表
-    await oai_global_variables.put("user_joined", updatedEntries.join(','));
-
-    // 更新用户列表
-    const updatedUserNames = updatedEntries.map(entry => entry.split(':')[0]);
-    await oai_global_variables.put("users", updatedUserNames.join(','));
-}
-
-
 addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
@@ -122,7 +98,11 @@ const homePage = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>汉 Plus 拼车服务</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="https://cdn1.oaifree.com/_next/static/media/apple-touch-icon.82af6fe1.png"/>
+    <link rel="icon" type="image/png" sizes="32x32" href="https://cdn4.oaifree.com/_next/static/media/favicon-32x32.630a2b99.png"/>
+    <link rel="icon" type="image/png" sizes="16x16" href="https://cdn4.oaifree.com/_next/static/media/favicon-16x16.a052137e.png"/>
+
+    <title>{{carName}} 公益车</title>
     <style>
         body {
             display: flex;
@@ -243,7 +223,7 @@ const homePage = `<!DOCTYPE html>
 </head>
 <body>
     <div  class="content-wrapper">
-        <h1>ChatGPT Plus {{load}}人拼车</h1>
+        <h1>{{carName}}{{load}}人公益车</h1>
         <p class="other-page">当前车上有 <strong>{{userCount}}</strong> 人。</p>
         <p class="other-page">输入您的用户名以隔离他人的会话</p>
         <p/>
@@ -263,10 +243,10 @@ const homePage = `<!DOCTYPE html>
             </div>
             <button type="submit">上车</button>
             <p class="other-page">没有车票？👉
-                <a class="other-page-link" href="https://shop.wehugai.com/buy/12" target="_blank">去买一张</a>
+                <a class="other-page-link" href="https://mp.weixin.qq.com/s?__biz=MzA5MjQ3MDU5Mw==&mid=2650634778&idx=1&sn=0b8808e595fe57d0990337f7861ad49f&chksm=88657634bf12ff228997ebb752523438e33e6d844d4a2fff7a6203e0b146c3ff06f81c75ebfb#rd" target="_blank">公众号回复gpt获取</a>
             </p>
             <p class="other-page">这是什么？👉
-                <a class="other-page-link" href="https://home.hugai.top/productivity/plus.html" target="_blank">看看介绍</a>
+                <a class="other-page-link" href="https://mp.weixin.qq.com/s?__biz=MzA5MjQ3MDU5Mw==&mid=2650634778&idx=1&sn=0b8808e595fe57d0990337f7861ad49f&chksm=88657634bf12ff228997ebb752523438e33e6d844d4a2fff7a6203e0b146c3ff06f81c75ebfb#rd" target="_blank">看看介绍</a>
             </p>
         </form>
     </div>
@@ -307,13 +287,15 @@ const homePage = `<!DOCTYPE html>
 </body>
 </html>`;
 
-async function serveHTML(request, userCount, baseUrl, load) {
+async function serveHTML(request, carName, userCount, baseUrl, load) {
     const formData = await request.formData();
     const userName = formData.get('un');
     const ticket = formData.get('ticket');
 
     // 动态生成首页 HTML，替换{{userCount}}占位符
     const dynamicHomePage = homePage
+    .replace('{{carName}}', carName)
+    .replace('{{carName}}', carName)
     .replace('{{userCount}}', userCount)
     .replace('{{baseUrl}}', baseUrl)
     .replace('{{load}}', load); // 替换占位符
@@ -334,7 +316,7 @@ async function serveHTML(request, userCount, baseUrl, load) {
 async function updateUserJoinTime(userName) {
     let userJoined = await oai_global_variables.get("user_joined");
     const currentDate = new Date();
-    currentDate.setMonth(currentDate.getMonth() + 1); // 加一个月
+    currentDate.setMonth(currentDate.getMonth() + 3); // 加12个月
     const expirationDate = currentDate.toISOString().split('T')[0]; // 只获取日期部分
 
     const newUserJoined = `${userName}:${expirationDate}`;
@@ -364,18 +346,33 @@ async function handleUser(userName, ticket, dynamicHomePage, userCount, load) {
                 });
             }
 
-            const tickets = await oai_global_variables.get("tickets");
-            if (tickets.split(",").includes(ticket)) {
-                // Add user and remove ticket
-                let newUsersList = users ? `${users},${userName}` : userName; // 如果users不为空，则添加逗号和新用户名，否则只添加用户名
-                await oai_global_variables.put("users", newUsersList);
-                await oai_global_variables.put("tickets", tickets.split(",").filter(t => t !== ticket).join(","));
-                // Record user join time
-                await updateUserJoinTime(userName);
-                
-                return await getShareTokenAndLogin(userName);
+            let tickets = await oai_global_variables.get("tickets");
+            if (tickets) {
+                tickets = tickets.split(",");
+
+                const ticketIndex = tickets.indexOf(ticket);
+                if (ticketIndex !== -1) {
+                    // Remove used ticket
+                    tickets.splice(ticketIndex, 1);
+                    await oai_global_variables.put("tickets", tickets.join(","));
+                    
+                    // Add user to users list
+                    let newUsersList = users ? `${users},${userName}` : userName; // 如果users不为空，则添加逗号和新用户名，否则只添加用户名
+                    await oai_global_variables.put("users", newUsersList);
+
+                    // Record user join time
+                    await updateUserJoinTime(userName);
+
+                    return await getShareTokenAndLogin(userName);
+                } else {
+                    return new Response(dynamicHomePage.replace('<label for="ticket">车票</label>', '<label for="ticket">车票</label><p  class="other-page">车票无效</p>'), {
+                        headers: {
+                            'Content-Type': 'text/html'
+                        }
+                    });
+                }
             } else {
-                return new Response(dynamicHomePage.replace('<label for="ticket">车票</label>', '<label for="ticket">车票</label><p  class="other-page">车票无效</p>'), {
+                return new Response(dynamicHomePage.replace('<label for="ticket">车票</label>', '<label for="ticket">车票</label><p  class="other-page">没有可用的车票</p>'), {
                     headers: {
                         'Content-Type': 'text/html'
                     }
@@ -461,10 +458,13 @@ async function handleRequest(request) {
     const users = await oai_global_variables.get("users"); // 获取当前用户列表
     const userCount = users ? users.split(",").length : 0; // 计算用户数量
     const carName = await oai_global_variables.get("car_name"); // 从KV获取car_name变量
-    const baseUrl = `https://${carName}/?un=`; // 使用car_name构造基础URL
+	const base_url = await oai_global_variables.get("base_url"); // base_url
+    const baseUrl = `https://${base_url}/?un=`; // 使用car_name构造基础URL
     const load = parseInt(await oai_global_variables.get("load"), 10);
 
     const dynamicHomePage = homePage
+	.replace('{{carName}}', carName)
+    .replace('{{carName}}', carName)
     .replace('{{userCount}}', userCount)
     .replace('{{baseUrl}}', baseUrl)
     .replace('{{load}}', load); // 替换占位符
@@ -487,6 +487,6 @@ async function handleRequest(request) {
         }
     } else if (request.method === 'POST') {
         //提交表单，包含用户名和ticket
-        return serveHTML(request , userCount, baseUrl, load);
+        return serveHTML(request , carName, userCount, baseUrl, load);
     }
 }

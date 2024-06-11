@@ -63,13 +63,9 @@ function parseJwt(token) {
 }
 
 function isTokenExpired(token) {
-    try {
-        const payload = parseJwt(token);
-        const currentTime = Math.floor(Date.now() / 1000); // 获取当前时间戳（秒）
-        return payload.exp < currentTime; // 检查 token 是否过期
-    } catch {
-        return true;
-    }
+    const payload = parseJwt(token);
+    const currentTime = Math.floor(Date.now() / 1000); // 获取当前时间戳（秒）
+    return payload.exp < currentTime; // 检查 token 是否过期
 }
 
 async function getOAuthLink(shareToken, proxiedDomain) {
@@ -122,7 +118,7 @@ const homePage = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>汉 Plus 拼车服务</title>
+    <title>德索 Plus</title>
     <style>
         body {
             display: flex;
@@ -243,7 +239,7 @@ const homePage = `<!DOCTYPE html>
 </head>
 <body>
     <div  class="content-wrapper">
-        <h1>ChatGPT Plus {{load}}人拼车</h1>
+        <h1>德索 Plus 豪华大巴 {{load}}座</h1>
         <p class="other-page">当前车上有 <strong>{{userCount}}</strong> 人。</p>
         <p class="other-page">输入您的用户名以隔离他人的会话</p>
         <p/>
@@ -257,17 +253,11 @@ const homePage = `<!DOCTYPE html>
                 <br>
             </p>
             <p  class="other-page" id="directLinkPrompt" style="display:none;">上车后，也可通过👇直接访问 <br><a class="other-page-link href="#" id="directLinkUrl">这里</a><br><br></p>
-            <div class="input-wrapper">
+            <div class="input-wrapper" style="display:none;">
                 <input type="text" name="ticket" placeholder=" ">
                 <label for="ticket">车票</label>
             </div>
             <button type="submit">上车</button>
-            <p class="other-page">没有车票？👉
-                <a class="other-page-link" href="https://shop.wehugai.com/buy/12" target="_blank">去买一张</a>
-            </p>
-            <p class="other-page">这是什么？👉
-                <a class="other-page-link" href="https://home.hugai.top/productivity/plus.html" target="_blank">看看介绍</a>
-            </p>
         </form>
     </div>
     <script>
@@ -334,7 +324,7 @@ async function serveHTML(request, userCount, baseUrl, load) {
 async function updateUserJoinTime(userName) {
     let userJoined = await oai_global_variables.get("user_joined");
     const currentDate = new Date();
-    currentDate.setMonth(currentDate.getMonth() + 1); // 加一个月
+    currentDate.setMonth(currentDate.getMonth() + 12); // 加12个月
     const expirationDate = currentDate.toISOString().split('T')[0]; // 只获取日期部分
 
     const newUserJoined = `${userName}:${expirationDate}`;
@@ -393,7 +383,7 @@ async function handleUser(userName, ticket, dynamicHomePage, userCount, load) {
 
 async function getShareTokenAndLogin(userName){
     // @ts-ignore
-    let accessToken = await oai_global_variables.get('at');
+    const accessToken = await oai_global_variables.get('at');
     console.log("Access Token Retrieved:", accessToken);
 
     if (isTokenExpired(accessToken)) {
@@ -424,10 +414,10 @@ async function getShareTokenAndLogin(userName){
         // 检查响应状态
         if (response.ok) {
             const data = await response.json();  // 假设服务器返回的是 JSON 格式数据
-            accessToken  = data.access_token; // 直接从 JSON 中获取 access_token
-            console.log("New Access Token Retrieved:", accessToken);
+            const newAccessToken  = data.access_token; // 直接从 JSON 中获取 access_token
+            console.log("New Access Token Retrieved:", newAccessToken);
 
-            await oai_global_variables.put('at', accessToken);
+            await oai_global_variables.put('at', newAccessToken);
         } else {
 
             console.log("Failed to refresh token, HTTP Status:", response.status);

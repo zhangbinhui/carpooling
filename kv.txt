@@ -1,10 +1,9 @@
-at
-..--lof1iagg
-
-car_name    hanplus.hugai.top
-load    6
+at  eyJhxxx
+base_url    yuan.hugai.top
+car_name    元
+load    100
 proxied_domain  share.hugai.top
-rt  
-tickets hanplus
+rt  xxx
+tickets hello2024,hello2024,hello2024,hello2024
 user_joined
 users
