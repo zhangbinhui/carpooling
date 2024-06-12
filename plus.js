@@ -223,7 +223,7 @@ const homePage = `<!DOCTYPE html>
 </head>
 <body>
     <div  class="content-wrapper">
-        <h1>{{carName}}{{load}} 人豪华大巴</h1>
+        <h1>{{carName}}{{load}}人拼车</h1>
         <p class="other-page">当前车上有 <strong>{{userCount}}</strong> 人。</p>
         <p class="other-page">输入您的用户名以隔离他人的会话</p>
         <p/>
