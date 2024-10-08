@@ -5,11 +5,15 @@ addEventListener('scheduled', event => {
 async function handleScheduledEvent(event) {
     // 每个Worker的KV命名空间
     const namespaces = {
+        zhou:zhouNamespace,
         qin: qinNamespace,
         han: hanNamespace,
+        sui: suiNamespace,
         tang: tangNamespace,
         song: songNamespace,
-        yuan: yuanNamespace
+        yuan: yuanNamespace,
+        hanplus:hanplusNamespace,
+        plus:plusNamespace
     };
 
     for (const namespaceName in namespaces) {
