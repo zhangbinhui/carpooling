@@ -1,5 +1,5 @@
 addEventListener('fetch', event => {
-    event.respondWith(handleStationRequest());
+    event.respondWith(handleStationRequest(event.request));
 });
 
 // 添加 getEarliestGetOffDate 函数
@@ -19,11 +19,21 @@ function getEarliestGetOffDate(userJoined) {
     if (earliestDateStr) {
         return earliestDateStr;
     } else {
-        return '暂无下车时间'; // 您可以根据需要修改默认显示内容
+        return '暂无'; // 您可以根据需要修改默认显示内容
     }
 }
 
-async function handleStationRequest() {
+async function handleStationRequest(request) {
+    const url = new URL(request.url);
+    const hostname = request.headers.get('X-Original-Host') || url.hostname;
+
+    const haitunLoad = await haitunKV.get('load');
+    const haitunName = await haitunKV.get('car_name');
+    const haitunUsers = await haitunKV.get('users');
+    const haitunUserCount = haitunUsers ? haitunUsers.split(',').length : 0;
+    const haitunUserJoined = await haitunKV.get('user_joined');
+    const haitunUserGetOff = getEarliestGetOffDate(haitunUserJoined);
+
     const zhouLoad = await zhouKV.get('load');
     const zhouName = await zhouKV.get('car_name');
     const zhouUsers = await zhouKV.get('users');
@@ -80,7 +90,28 @@ async function handleStationRequest() {
     const hanplusUserJoined = await hanplusKV.get('user_joined');
     const hanplusUserGetOff = getEarliestGetOffDate(hanplusUserJoined);
 
+    const songplusLoad = await songplusKV.get('load');
+    const songplusName = await songplusKV.get('car_name');
+    const songplusUsers = await songplusKV.get('users');
+    const songplusUserCount = songplusUsers ? songplusUsers.split(',').length : 0;
+    const songplusUserJoined = await songplusKV.get('user_joined');
+    const songplusUserGetOff = getEarliestGetOffDate(songplusUserJoined);
+
+    const yuanplusLoad = await yuanplusKV.get('load');
+    const yuanplusName = await yuanplusKV.get('car_name');
+    const yuanplusUsers = await yuanplusKV.get('users');
+    const yuanplusUserCount = yuanplusUsers ? yuanplusUsers.split(',').length : 0;
+    const yuanplusUserJoined = await yuanplusKV.get('user_joined');
+    const yuanplusUserGetOff = getEarliestGetOffDate(yuanplusUserJoined);
+
     // 构建页面模板，添加最近下车时间的信息，添加选项卡功能
+    const defaultTab = hostname.endsWith('.top') ? 'public' : 'plus';
+    const publicChatGPTActive = defaultTab === 'public' ? 'active' : '';
+    const plusChatGPTActive = defaultTab === 'plus' ? 'active' : '';
+    const publicClaudeActive = '';
+    const proClaudeActive = '';
+
+
     const stationPage = `
         <!DOCTYPE html>
         <html lang="zh-CN">
@@ -91,7 +122,7 @@ async function handleStationRequest() {
             <link rel="icon" type="image/png" sizes="32x32" href="https://cdn4.oaifree.com/_next/static/media/favicon-32x32.630a2b99.png"/>
             <link rel="icon" type="image/png" sizes="16x16" href="https://cdn4.oaifree.com/_next/static/media/favicon-16x16.a052137e.png"/>
 
-            <title>ChatGPT 公益车站</title>
+            <title>Ai公益车站</title>
             <style>
                 body {
                     display: flex;
@@ -186,6 +217,17 @@ async function handleStationRequest() {
                 .car-button:hover {
                     background-color: #0e8a6b;
                 }
+                .logo {
+                    display: block;
+                    margin: 20px auto;
+                    width: 250px;
+                    height: auto;
+                }
+                .hostname {
+                    font-size: 14px;
+                    color: #999;
+                    margin-bottom: 20px;
+                }
                 @media (max-width: 768px) {
                     .car-container {
                         flex-direction: column;
@@ -195,12 +237,25 @@ async function handleStationRequest() {
             </style>
         </head>
         <body>
+            <img src="https://wehugai.com/qms.png" alt="Qiumingshan Logo" class="logo">
+            <div class="hostname">想要plus发新车的可以公众号私信联系</div>
             <div class="tab-container">
                 <div class="tabs">
-                    <div class="tab active" data-tab="public">ChatGPT公益车站</div>
-                    <div class="tab" data-tab="plus">ChatGPT Plus 拼车服务</div>
+                    <div class="tab ${publicClaudeActive}" data-tab="claudePublic">Claude公益车</div>
+                    <div class="tab ${publicChatGPTActive}" data-tab="public">ChatGPT公益车</div>
+                    <div class="tab ${plusChatGPTActive}" data-tab="plus">ChatGPT Plus 拼车</div>
                 </div>
-                <div id="public" class="tab-content active">
+                <div id="claudePublic" class="tab-content ${publicClaudeActive}">
+                    <div class="car-container">
+                        <div class="car-card">
+                            <div class="car-name">${haitunName}</div>
+                            <div class="car-load">乘客：${haitunUserCount}/${haitunLoad}</div>
+                            <a href="https://haitun.hugai.top" class="car-button">上车</a>
+                            <div class="car-usergetoff">最近一个用户的下车时间：${haitunUserGetOff}</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="public" class="tab-content ${publicChatGPTActive}">
                     <div class="car-container">
                         <div class="car-card">
                             <div class="car-name">${zhouName}</div>
@@ -246,13 +301,28 @@ async function handleStationRequest() {
                         </div>
                     </div>
                 </div>
-                <div id="plus" class="tab-content">
+                <div id="plus" class="tab-content ${plusChatGPTActive}">
                     <div class="car-container">
                         <div class="car-card">
                             <div class="car-name">${hanplusName}</div>
                             <div class="car-load">乘客：${hanplusUserCount}/${hanplusLoad}</div>
                             <a href="https://hanplus.aiporters.com" class="car-button">上车</a>
                             <div class="car-usergetoff">最近一个用户的下车时间：${hanplusUserGetOff}</div>
+                        </div>
+
+                        <div class="car-card">
+                            <div class="car-name">${songplusName}</div>
+                            <div class="car-load">乘客：${songplusUserCount}/${songplusLoad}</div>
+                            <a href="https://songplus.aiporters.com" class="car-button">上车</a>
+                            <div class="car-usergetoff">最近一个用户的下车时间：${songplusUserGetOff}</div>
+                        </div>
+
+                        <div class="car-card">
+                            <div class="car-name">${yuanplusName}</div>
+                            <div class="car-load">乘客：${yuanplusUserCount}/${yuanplusLoad}</div>
+                            <a href="https://yuanplus.aiporters.com" class="car-button">上车</a>
+                            <div class="car-usergetoff">最近一个用户的下车时间：${yuanplusUserGetOff}</div>
+                        </div>
                     </div>
                 </div>
             </div>
