@@ -243,7 +243,7 @@ addEventListener('fetch', event => {
             </div>
             <button type="submit">上车</button>
             <p class="other-page">没有车票？👉
-            <a class="other-page-link" href="https://store.wehugai.com/buy/11" target="_blank">去买一张</a>
+            <a class="other-page-link" href="https://smallshop.wehugai.com/buy/11" target="_blank">去买一张</a>
             </p>
             <p class="other-page">这是什么？👉
                 <a class="other-page-link" href="https://home.aiporters.com/productivity/plus.html" target="_blank">看看介绍</a>
@@ -287,8 +287,7 @@ addEventListener('fetch', event => {
                     // 用户未找到
                     expiryDatePrompt.style.display = 'none';
                     ticketInputWrapper.style.display = 'block';
-                    errorPrompt.style.display = 'block';
-                    errorPrompt.textContent = '您当前不在车上，请输入车票上车';
+                    errorPrompt.style.display = 'none';
                 }
             } catch (error) {
                 console.error('Failed to fetch the expiry date', error);
@@ -386,7 +385,9 @@ addEventListener('fetch', event => {
                 });
             }
         } else {
-            return new Response(dynamicHomePage.replace('<label for="un">用户名</label>', '<label for="un">用户名</label><p class="other-page">您当前不在车上，请输入车票再上车</p>'), {
+            return new Response(dynamicHomePage.replace(
+              '<label for="un">用户名</label>', 
+              '<label for="un">用户名</label><p class="other-page">您当前不在车上，请输入车票再上车</p>'), {
                 headers: {
                     'Content-Type': 'text/html'
                 }
@@ -402,7 +403,7 @@ addEventListener('fetch', event => {
     const body = {
         session_key: sessionKey,
         unique_name: userName,
-        expires_in: 0
+        expires_in: 36000
     };
   
     const apiResponse = await fetch(url, {

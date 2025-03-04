@@ -57,42 +57,42 @@ addEventListener('fetch', event => {
   }
   
   function getEarliestGetOffDate(userJoined) {
-      let earliestDateStr = null;
-      if (userJoined) {
-          const entries = userJoined.split(',');
-          for (let entry of entries) {
-              const [userName, dateStr] = entry.split(':');
-              if (dateStr) {
-                  if (!earliestDateStr || dateStr < earliestDateStr) {
-                      earliestDateStr = dateStr;
-                  }
-              }
-          }
-      }
-      if (earliestDateStr) {
-          return earliestDateStr;
-      } else {
-          return '暂无下车时间'; // Or your preferred default message
-      }
+    let earliestDateStr = null;
+    if (userJoined) {
+        const entries = userJoined.split(',');
+        for (let entry of entries) {
+            const [userName, dateStr] = entry.split(':');
+            if (dateStr) {
+                if (!earliestDateStr || dateStr < earliestDateStr) {
+                    earliestDateStr = dateStr;
+                }
+            }
+        }
+    }
+    if (earliestDateStr) {
+        return earliestDateStr;
+    } else {
+        return '暂无'; // Or your preferred default message
+    }
   }
   
   async function updateUserJoinTime(userName) {
-      let userJoined = await claude_global_variables.get("user_joined");
-      const currentDate = new Date();
-      currentDate.setMonth(currentDate.getMonth() + 1); // Add 1 month
-      const expirationDate = currentDate.toISOString().split('T')[0]; // Get date part
+    let userJoined = await claude_global_variables.get("user_joined");
+    const currentDate = new Date();
+    currentDate.setMonth(currentDate.getMonth() + 1); // Add 1 month
+    const expirationDate = currentDate.toISOString().split('T')[0]; // Get date part
   
-      const newUserJoined = `${userName}:${expirationDate}`;
-      if (userJoined) {
-          userJoined = `${userJoined},${newUserJoined}`;
-      } else {
-          userJoined = newUserJoined;
-      }
-      await claude_global_variables.put("user_joined", userJoined);
+    const newUserJoined = `${userName}:${expirationDate}`;
+    if (userJoined) {
+        userJoined = `${userJoined},${newUserJoined}`;
+    } else {
+        userJoined = newUserJoined;
+    }
+    await claude_global_variables.put("user_joined", userJoined);
   
-      // 重新计算最近下车时间
-      const earliestDateStr = getEarliestGetOffDate(userJoined);
-      await claude_global_variables.put("user_earliest_get_off_date", earliestDateStr);
+    // 重新计算最近下车时间
+    const earliestDateStr = getEarliestGetOffDate(userJoined);
+    await claude_global_variables.put("user_earliest_get_off_date", earliestDateStr);
   }
   
   const homePage = `<!DOCTYPE html>
@@ -100,7 +100,7 @@ addEventListener('fetch', event => {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{carName}} Claude公益车</title>
+    <title>{{carName}} Claude账号共享</title>
     <style>
         body {
             display: flex;
@@ -179,7 +179,7 @@ addEventListener('fetch', event => {
   
         .other-page-link {
             padding: 4px;
-        }        
+        }
   
         .content-wrapper {
             display: flex;
@@ -221,7 +221,7 @@ addEventListener('fetch', event => {
   </head>
   <body>
     <div class="content-wrapper">
-        <h1>{{carName}}{{load}}人公益车</h1>
+        <h1>{{carName}}{{load}}人专车</h1>
         <p class="other-page">当前车上有 <strong>{{userCount}}</strong> 人。</p>
         <p class="other-page">最近一个用户的下车时间：<strong>{{userGetOff}}</strong></p>
         <p class="other-page">输入您的用户名以隔离他人的会话</p>
@@ -243,10 +243,10 @@ addEventListener('fetch', event => {
             </div>
             <button type="submit">上车</button>
             <p class="other-page">没有车票？👉
-            <a class="other-page-link" href="https://home.aiporters.com/" target="_blank">公众号回复gpt获取</a>
+            <a class="other-page-link" href="https://smallshop.wehugai.com/buy/12" target="_blank">去买一张</a>
             </p>
             <p class="other-page">这是什么？👉
-                <a class="other-page-link" href="https://mp.weixin.qq.com/s/-qdPydsPaYYouqobwoWuTw" target="_blank">看看介绍</a>
+                <a class="other-page-link" href="https://home.aiporters.com/productivity/plus.html" target="_blank">看看介绍</a>
             </p>
         </form>
     </div>
@@ -337,24 +337,30 @@ addEventListener('fetch', event => {
   async function handleUser(userName, ticket, dynamicHomePage, userCount, load) {
     const users = await claude_global_variables.get("users");
     if (users && users.split(",").includes(userName)) {
-        // Existing user logic
+        // Existing user
         return await getShareTokenAndLogin(userName);
     } else {
-        // New user logic
+        // New user
         if (ticket) {
             if (userCount >= load) {
-                return new Response(dynamicHomePage.replace(
-                    '<label for="un">用户名</label>',
-                    '<label for="un">用户名</label><p class="other-page">满载啦，等人下车才能上啦！</p>'
-                ), {
-                    headers: { 'Content-Type': 'text/html' }
+                return new Response(dynamicHomePage.replace('<label for="un">用户名</label>', '<label for="un">用户名</label><p class="other-page">满载啦，等人下车才能上啦！</p>'), {
+                    headers: {
+                        'Content-Type': 'text/html'
+                    }
                 });
             }
   
-            let ticketInStore = await claude_global_variables.get("tickets");
-            if (ticketInStore) {
-                if (ticket === ticketInStore) {
-                    // Valid ticket, proceed to add user
+            let tickets = await claude_global_variables.get("tickets");
+            if (tickets) {
+                tickets = tickets.split(",");
+  
+                const ticketIndex = tickets.indexOf(ticket);
+                if (ticketIndex !== -1) {
+                    // Remove used ticket
+                    tickets.splice(ticketIndex, 1);
+                    await claude_global_variables.put("tickets", tickets.join(","));
+  
+                    // Add user to users list
                     let newUsersList = users ? `${users},${userName}` : userName;
                     await claude_global_variables.put("users", newUsersList);
   
@@ -366,27 +372,24 @@ addEventListener('fetch', event => {
   
                     return await getShareTokenAndLogin(userName);
                 } else {
-                    return new Response(dynamicHomePage.replace(
-                        '<label for="ticket">车票</label>',
-                        '<label for="ticket">车票</label><p class="other-page">车票无效</p>'
-                    ), {
-                        headers: { 'Content-Type': 'text/html' }
+                    return new Response(dynamicHomePage.replace('<label for="ticket">车票</label>', '<label for="ticket">车票</label><p class="other-page">车票无效</p>'), {
+                        headers: {
+                            'Content-Type': 'text/html'
+                        }
                     });
                 }
             } else {
-                return new Response(dynamicHomePage.replace(
-                    '<label for="ticket">车票</label>',
-                    '<label for="ticket">车票</label><p class="other-page">没有可用的车票</p>'
-                ), {
-                    headers: { 'Content-Type': 'text/html' }
+                return new Response(dynamicHomePage.replace('<label for="ticket">车票</label>', '<label for="ticket">车票</label><p class="other-page">没有可用的车票</p>'), {
+                    headers: {
+                        'Content-Type': 'text/html'
+                    }
                 });
             }
         } else {
-            return new Response(dynamicHomePage.replace(
-                '<label for="un">用户名</label>',
-                '<label for="un">用户名</label><p class="other-page">您当前不在车上，请输入车票再上车</p>'
-            ), {
-                headers: { 'Content-Type': 'text/html' }
+            return new Response(dynamicHomePage.replace('<label for="un">用户名</label>', '<label for="un">用户名</label><p class="other-page">您当前不在车上，请输入车票再上车</p>'), {
+                headers: {
+                    'Content-Type': 'text/html'
+                }
             });
         }
     }
@@ -458,6 +461,7 @@ addEventListener('fetch', event => {
   }
   
   async function handleRequest(request) {
+  
       const [
           users,
           carName,
@@ -473,12 +477,11 @@ addEventListener('fetch', event => {
           claude_global_variables.get("user_joined"),
           claude_global_variables.get('user_earliest_get_off_date')
       ]);
-      
+  
       const userCount = users ? users.split(",").length : 0;
       const baseUrl = `https://${base_url}/?un=`;
       const load = parseInt(loadStr, 10);
       const userGetOff = userGetOffValue || '暂无下车时间';
-      
   
   
     const dynamicHomePage = homePage
@@ -508,4 +511,5 @@ addEventListener('fetch', event => {
         // Form submission
         return serveHTML(request, carName, userCount, baseUrl, load, userGetOff);
     }
-  }  
+  }
+  
